@@ -1,0 +1,46 @@
+name: Build test image (clouddrive-115)
+
+# NAS 不能构建、只能拉镜像时用这条：在 GitHub Actions 的云上构建，
+# 推到 ghcr.io/jn921/peach:clouddrive-115，NAS 只用 docker pull / compose pull。
+# 不推 Docker Hub：Docker Hub 的自动构建已停用，且上游 release 用的
+# Docker Hub 账号是 longmeidao 的，fork 里没有对应 secret。
+# ghcr 用仓库自带的 GITHUB_TOKEN 就能推，不用另外建账号。
+# 镜像默认是私有包，首次推送后需在仓库 Packages 里把可见性改成 Public，
+# NAS 才能免登录拉取；改成 Public 前 NAS 拉取会报 401。
+on:
+  push:
+    branches: [clouddrive-115]
+    paths: [Dockerfile, .dockerignore, compose.yaml, 'src/**', 'migrations/**', 'web/**', 'resources/**', pyproject.toml, uv.lock, setup.py, MANIFEST.in, .github/workflows/build-test-image.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: build-test-image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    name: Linux amd64 测试镜像
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - name: 登录 ghcr.io
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: 构建并推送
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/jn921/peach:clouddrive-115
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
