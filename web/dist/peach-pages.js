@@ -2,7 +2,7 @@
 (function() {
 	try {
 		var e = typeof globalThis < "u" ? globalThis : typeof window < "u" ? window : typeof global < "u" ? global : typeof self < "u" ? self : {}, t = new e.Error().stack;
-		t && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[t] = "75a7b110-8e4a-490a-92f5-aedf646425fd", e._sentryDebugIdIdentifier = "sentry-dbid-75a7b110-8e4a-490a-92f5-aedf646425fd");
+		t && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[t] = "a3dbeaf7-1e95-42b1-9c6f-1770afc9458e", e._sentryDebugIdIdentifier = "sentry-dbid-a3dbeaf7-1e95-42b1-9c6f-1770afc9458e");
 	} catch {}
 })();
 var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescriptor, r = Object.getOwnPropertyNames, i = Object.getPrototypeOf, a = Object.prototype.hasOwnProperty, o = (e, t) => () => (t || (e((t = { exports: {} }).exports, t, t.exports), e = null), t.exports), s = (e, i, o, s) => {
@@ -6364,6 +6364,27 @@ var He = {
 		unitMinutes: "min",
 		unitSeconds: "sec",
 		unitVideos: "videos"
+	},
+	open115: {
+		title: "115 Open (official API)",
+		help: "Sign in with the official 115 API and read a folder you authorize, without mounting 115 in Docker. Playback uses the original-file direct link.",
+		account: "115 account",
+		bound: "Linked",
+		notBound: "Not linked",
+		bindAccount: "Link 115 account",
+		qrcodeHelp: "Scan with the 115 app to confirm linking; this panel updates automatically once linked.",
+		cancelQrcode: "Cancel scan",
+		appNotConfiguredTitle: "Developer app not configured",
+		appNotConfigured: "Set the 115 app AppID and AppSecret in the deployment (environment variables) first, then come back to scan and link.",
+		currentFolder: "Linked folder",
+		selectFolder: "Choose folder",
+		rootFolder: "115 drive",
+		noSubfolders: "This folder has no subfolders.",
+		saveFolder: "Link this folder",
+		test: "Test connection",
+		testOk: "115 connection works",
+		disconnect: "Unlink",
+		disconnected: "115 unlinked"
 	},
 	peachProxy: {
 		chooseMode: "Choose a connection mode",
@@ -12836,6 +12857,27 @@ var He = {
 		unitMinutes: "分钟",
 		unitSeconds: "秒",
 		unitVideos: "部"
+	},
+	open115: {
+		title: "115 Open（官方接口直连）",
+		help: "用 115 官方接口登录，读你授权的文件夹，不用在 Docker 里挂载 115。播放走原盘直链。",
+		account: "115 账号",
+		bound: "已绑定",
+		notBound: "未绑定",
+		bindAccount: "绑定 115 账号",
+		qrcodeHelp: "用 115 App 扫码确认绑定，绑定成功后这里会自动更新。",
+		cancelQrcode: "取消扫码",
+		appNotConfiguredTitle: "开发者应用未配置",
+		appNotConfigured: "请先在部署里填好 115 应用的 AppID 与 AppSecret（环境变量），再回来扫码绑定。",
+		currentFolder: "已绑定文件夹",
+		selectFolder: "选择文件夹",
+		rootFolder: "115 云盘",
+		noSubfolders: "这个文件夹下面没有子文件夹。",
+		saveFolder: "绑定这个文件夹",
+		test: "测试连接",
+		testOk: "115 连接正常",
+		disconnect: "断开绑定",
+		disconnected: "115 已断开绑定"
 	},
 	peachProxy: {
 		chooseMode: "需要选择连接方式",
@@ -37448,4 +37490,4 @@ Et();
 var ib = document.getElementById("peach-page"), ab = ib ? rb[ib.dataset.page ?? ""] : void 0;
 ib && ab && (0, Ft.createRoot)(ib).render(/* @__PURE__ */ (0, V.jsx)(nb, { children: /* @__PURE__ */ (0, V.jsx)(ab, { data: { ...ib.dataset } }) }));
 
-//# debugId=75a7b110-8e4a-490a-92f5-aedf646425fd
+//# debugId=a3dbeaf7-1e95-42b1-9c6f-1770afc9458e
