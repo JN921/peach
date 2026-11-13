@@ -320,6 +320,7 @@ export interface ConfigurationData {
   entry_links?: EntryLinksState;
   push_discovery?: PushDiscoveryState;
   downloads?: DownloadSettingsState;
+  open115?: import('./settings/open115-settings').Open115State;
   updates?: ReleaseState;
   update_job?: UpdateJob;
   automatic_updates?: AutomaticUpdateState;

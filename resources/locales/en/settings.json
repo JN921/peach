@@ -756,6 +756,27 @@
     "unitSeconds": "sec",
     "unitVideos": "videos"
   },
+  "open115": {
+    "title": "115 Open (official API)",
+    "help": "Sign in with the official 115 API and read a folder you authorize, without mounting 115 in Docker. Playback uses the original-file direct link.",
+    "account": "115 account",
+    "bound": "Linked",
+    "notBound": "Not linked",
+    "bindAccount": "Link 115 account",
+    "qrcodeHelp": "Scan with the 115 app to confirm linking; this panel updates automatically once linked.",
+    "cancelQrcode": "Cancel scan",
+    "appNotConfiguredTitle": "Developer app not configured",
+    "appNotConfigured": "Set the 115 app AppID and AppSecret in the deployment (environment variables) first, then come back to scan and link.",
+    "currentFolder": "Linked folder",
+    "selectFolder": "Choose folder",
+    "rootFolder": "115 drive",
+    "noSubfolders": "This folder has no subfolders.",
+    "saveFolder": "Link this folder",
+    "test": "Test connection",
+    "testOk": "115 connection works",
+    "disconnect": "Unlink",
+    "disconnected": "115 unlinked"
+  },
   "peachProxy": {
     "chooseMode": "Choose a connection mode",
     "environment": "Environment",

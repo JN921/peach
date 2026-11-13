@@ -77,6 +77,10 @@ def rows(config, *, windows: bool, probe: bool = False, known: dict | None = Non
                 smb_fields = dict(smb_username=secrets.get('username', ''),
                                   smb_password_saved=bool(secrets.get('password')),
                                   smb_encrypt=secrets.get('encrypt') == 'true')
+            # 115 Open 行没有本机挂载：在线状态按 API 可达性判（配置页 115 卡片），
+            # 这里不拿 scandir 探，不把“未检测”报成离线。
+            online = None if value.get('transport') == 'open115' else _online(
+                root, root_id, mount, probe, config, known)
             result.append({"location": location, "root": root, "path": mount,
                            "root_id": root_id, "library_id": value["library_id"],
                            "library": library["name"], "library_icon": library.get("icon", ""),
@@ -85,7 +89,7 @@ def rows(config, *, windows: bool, probe: bool = False, known: dict | None = Non
                            "library_stages": library.get("stages", ""),
                            "cost": cost_for(location, root, config),
                            "transport": value.get('transport', 'filesystem'),
-                           "online": _online(root, root_id, mount, probe, config, known), **smb_fields})
+                           "online": online, **smb_fields})
     return result
 
 
@@ -183,6 +187,9 @@ def prepare_sources(raws: object, *, windows: bool, config=None) -> object:
     for row in result:
         if not isinstance(row, dict) or str(row.get("root", "")).strip():
             continue
+        if row.get("transport") == "open115":
+            # 115 Open 行没有本地路径可补：根前缀在绑定文件夹时已定，不走本地路径推断。
+            continue
         from .smb_media import is_address
         if windows and not is_address(row.get('path')):
             continue
@@ -190,8 +197,21 @@ def prepare_sources(raws: object, *, windows: bool, config=None) -> object:
     return result
 
 
+def _validated_open115_paths(row: dict) -> tuple[PureWindowsPath, PurePath]:
+    """115 Open 行：只校验账本根前缀是 Windows 形态，不校验本地路径存在性，
+    也不做 scandir；本机路径用按根前缀唯一的虚拟哨兵，只用于行间去重比较。"""
+    root = str(row.get("root") or "").strip()
+    if not platform.is_windows_path(root) or ".." in PureWindowsPath(root).parts:
+        raise ValueError("115 Open 目录的内部路径无效，请使用 Windows 格式，例如 R:\\115")
+    declared = PureWindowsPath(root)
+    sentinel = PurePosixPath("/open115/" + str(declared).replace("\\", "/").replace(":", ""))
+    return declared, sentinel
+
+
 def _validated_paths(row: dict, *, windows: bool) -> tuple[PureWindowsPath, PurePath]:
     """取得数据库路径前缀与本机实际目录，用于检查重复和包含关系。"""
+    if row.get('transport') == 'open115':
+        return _validated_open115_paths(row)
     text = str(row.get("path", "")).strip()
     from .smb_media import is_address, canonical
     if row.get('transport') == 'smb' and not is_address(text):
@@ -253,8 +273,12 @@ def validate(raws: object, *, windows: bool, config=None) -> tuple[dict, dict, l
             seen.append((declared, path))
             locations.setdefault(location, []).append(str(declared))
             from .smb_media import is_address
-            mounts.setdefault(location, []).append(row['path'] if is_address(row['path'])
-                                                    else str(path) if not windows or declared != path else "")
+            if row.get('transport') == 'open115':
+                # 115 Open 行没有本机挂载点，mounts 记空串，不把虚拟哨兵写进配置。
+                mounts.setdefault(location, []).append("")
+            else:
+                mounts.setdefault(location, []).append(row['path'] if is_address(row['path'])
+                                                        else str(path) if not windows or declared != path else "")
         except ValueError as exc:
             errors[index] = str(exc)
     return ({key: tuple(value) for key, value in locations.items()},

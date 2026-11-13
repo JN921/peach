@@ -2,7 +2,7 @@
  * 只记结构（有没有这一块、几行、哪种表单），不记高度，也不记任何值。 */
 import type { ConfigurationData } from '../bundle';
 import { CLOUD_LOCATIONS } from '../../core/media-sources';
-import type { DownloadsShape, MaintenanceShape, NetworkShape } from '../../configuration-skeleton';
+import type { DownloadsShape, MaintenanceShape, NetworkShape, Open115Shape } from '../../configuration-skeleton';
 
 export function downloadsShape(data: ConfigurationData): DownloadsShape | null {
   const state = data.downloads;
@@ -15,6 +15,16 @@ export function downloadsShape(data: ConfigurationData): DownloadsShape | null {
     pikpakRoots: state.pikpak_roots.length > 0,
     pikpakLoggedIn: state.pikpak.logged_in,
     browserLogin: state.pikpak_browser.available,
+  };
+}
+
+export function open115Shape(data: ConfigurationData): Open115Shape | null {
+  const state = data.open115;
+  if (!state) return null;
+  return {
+    bound: state.bound,
+    appConfigured: state.app_configured,
+    rootBound: Boolean(state.root_cid),
   };
 }
 

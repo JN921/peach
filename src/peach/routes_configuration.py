@@ -241,6 +241,13 @@ def _read_section(result: dict, key: str, title: str, reader) -> None:
                               message=f"配置区域 {key} 读取失败", section=key, error_id=error_id)
 
 
+def open115_snapshot(config) -> dict[str, Any]:
+    """配置页快照里的 115 Open 一节：只回绑定状态，不回 token 原值，不调 115。"""
+    from .open115 import Open115Store, app_credentials_from_env
+    store = Open115Store(config.directory("secrets"))
+    return store.binding(app_configured=app_credentials_from_env().configured).public()
+
+
 def snapshot(config, reachability=None) -> dict[str, Any]:
     """配置页首屏要的一切：当前值、修订号、可写与否，以及这台机器的运行信息。
 
@@ -276,6 +283,7 @@ def snapshot(config, reachability=None) -> dict[str, Any]:
         ("media_sources", "媒体目录", lambda: media_configuration.rows(
             config, windows=os.name == "nt", probe=True,
             known=media_configuration.reachability_states(reachability))),
+        ("open115", "115 Open", lambda: open115_snapshot(config)),
         ("library_count", "媒体库状态", lambda: len(media_libraries.libraries(config))),
         ("mount_dependencies", "挂载依赖", media_configuration.mount_dependencies),
         ("facts", "运行信息", lambda: runtime_fact_entries(config)),
@@ -618,6 +626,170 @@ def create_download_folder(request: Request, body: dict = Body(...), _args=Depen
         return web_downloads.create_clouddrive_folder(service, body)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
+
+
+def _open115_store():
+    """115 token 与绑定的本机存储：Peach 数据目录 secrets/open115.json。"""
+    from .open115 import Open115Store
+    return Open115Store(settings_file.load_config().directory("secrets"))
+
+
+def _open115_client():
+    """115 客户端：应用凭据只从环境变量读，缺失时由客户端报“未配置”。"""
+    from .open115 import Open115Client, app_credentials_from_env
+    return Open115Client(app_credentials_from_env())
+
+
+def _open115_error(error) -> HTTPException:
+    """115 错误 → HTTP 状态：只把中文原因带给页面，不带原始错误码。"""
+    from .open115 import Open115Error
+    if not isinstance(error, Open115Error):
+        raise error
+    status = {"unauthorized": 401, "rate_limited": 429, "network": 502}.get(error.kind, 400)
+    return HTTPException(status, error.message)
+
+
+def _open115_token():
+    """已绑 token，过期时自动刷新；未绑定时报 401 请扫码。"""
+    from .open115 import Open115Error
+    store = _open115_store()
+    try:
+        token = store.refresh_if_needed(_open115_client())
+    except Open115Error as error:
+        raise _open115_error(error) from error
+    if token is None:
+        raise HTTPException(401, "115 还没有绑定账号，请先扫码绑定")
+    return token
+
+
+@router.get("/api/configuration/open115")
+def read_open115(request: Request, _args=Depends(require_auth)):
+    """读 115 Open 绑定状态：已绑账号、授权文件夹、token 是否已存；不回 token 原值。"""
+    local_only(request)
+    from .open115 import app_credentials_from_env
+    store = _open115_store()
+    return JSONResponse(store.binding(
+        app_configured=app_credentials_from_env().configured).public(),
+        headers={"Cache-Control": "no-store"})
+
+
+@router.post("/api/configuration/open115/qrcode")
+def create_open115_qrcode(request: Request, _args=Depends(require_auth)):
+    """生成扫码会话：后端调 115 拿 uid 与二维码，前端只展示、不直接调 115。"""
+    local_only(request)
+    same_origin(request)
+    from .open115 import Open115Error
+    store = _open115_store()
+    try:
+        result = _open115_client().start_qrcode()
+    except Open115Error as error:
+        raise _open115_error(error) from error
+    store.save_pending(result["uid"], result["code_verifier"])
+    return JSONResponse({"uid": result["uid"], "qrcode": result["qrcode"],
+                         "expires_in": result["expires_in"]},
+                        headers={"Cache-Control": "no-store"})
+
+
+@router.get("/api/configuration/open115/qrcode/status")
+def open115_qrcode_status(request: Request, _args=Depends(require_auth)):
+    """轮询扫码状态：status=2 时以后端存的 verifier 换 token 并保存，返回绑定状态。"""
+    local_only(request)
+    from .open115 import Open115Error
+    uid = str(request.query_params.get("uid") or "")
+    if not uid:
+        raise HTTPException(400, "缺少扫码会话编号")
+    store = _open115_store()
+    verifier = store.load_pending(uid)
+    if not verifier:
+        raise HTTPException(400, "扫码会话已过期，请重新生成二维码")
+    try:
+        checked = _open115_client().check_qrcode(uid)
+    except Open115Error as error:
+        raise _open115_error(error) from error
+    if checked["status"] != 2 or not checked["code"]:
+        return JSONResponse({"status": checked["status"], "bound": False},
+                            headers={"Cache-Control": "no-store"})
+    try:
+        token = _open115_client().exchange_code(checked["code"], verifier)
+    except Open115Error as error:
+        raise _open115_error(error) from error
+    store.save_token(token)
+    store.clear_pending()
+    return JSONResponse({"status": 2, "bound": True, **store.binding().public()},
+                        headers={"Cache-Control": "no-store"})
+
+
+@router.get("/api/configuration/open115/folders")
+def list_open115_folders(request: Request, _args=Depends(require_auth)):
+    """列云端文件夹：按 cid 展开一层，只回子文件夹，供前端文件夹选择器用。"""
+    local_only(request)
+    from .open115 import Open115Error
+    token = _open115_token()
+    cid = str(request.query_params.get("cid") or "0")
+    try:
+        items = _open115_client().list_files(token, cid)
+    except Open115Error as error:
+        raise _open115_error(error) from error
+    folders = [{"cid": item.fid, "name": item.name, "size": item.size}
+               for item in items if item.is_dir]
+    return JSONResponse({"cid": cid, "folders": folders},
+                        headers={"Cache-Control": "no-store"})
+
+
+@router.post("/api/configuration/open115/save")
+def save_open115(request: Request, body: dict = Body(...), _args=Depends(require_auth)):
+    """保存授权文件夹：只记根 cid / 路径 / 媒体库，扫描入库是阶段 2 的事。"""
+    local_only(request)
+    same_origin(request)
+    root_cid = str(body.get("root_cid") or "").strip()
+    root_path = str(body.get("root_path") or "").strip()
+    library_id = str(body.get("library_id") or "").strip()
+    if not root_cid:
+        raise HTTPException(400, "请先选择要绑定的 115 文件夹")
+    if not root_path:
+        raise HTTPException(400, "请先选择要绑定的 115 文件夹")
+    try:
+        _open115_store().save_binding(root_cid=root_cid, root_path=root_path,
+                                      library_id=library_id)
+    except OSError:
+        raise HTTPException(400, "115 绑定没有保存，请检查本机凭据目录权限") from None
+    return JSONResponse(_open115_store().binding().public(),
+                        headers={"Cache-Control": "no-store"})
+
+
+@router.post("/api/configuration/open115/test")
+def test_open115(request: Request, _args=Depends(require_auth)):
+    """连接测试：调 user/info + 根 cid 列一页，确认 token 有效、文件夹能列出。"""
+    local_only(request)
+    same_origin(request)
+    from .open115 import Open115Error
+    token = _open115_token()
+    store = _open115_store()
+    binding = store.binding()
+    if not binding.root_cid:
+        raise HTTPException(400, "请先选择要绑定的 115 文件夹")
+    client = _open115_client()
+    try:
+        user = client.user_info(token)
+        client.list_files(token, binding.root_cid, limit=1)
+    except Open115Error as error:
+        raise _open115_error(error) from error
+    return JSONResponse({"ok": True, "user": user, "root_cid": binding.root_cid,
+                         "root_path": binding.root_path},
+                        headers={"Cache-Control": "no-store"})
+
+
+@router.post("/api/configuration/open115/disconnect")
+def disconnect_open115(request: Request, _args=Depends(require_auth)):
+    """断开绑定：清 token 与授权文件夹；应用凭据在环境变量里，不受影响。"""
+    local_only(request)
+    same_origin(request)
+    try:
+        _open115_store().disconnect()
+    except OSError:
+        raise HTTPException(400, "115 绑定没有断开，请检查本机凭据目录权限") from None
+    return JSONResponse(_open115_store().binding().public(),
+                        headers={"Cache-Control": "no-store"})
 
 
 @router.post("/api/configuration/downloads/pikpak/login")

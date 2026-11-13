@@ -743,6 +743,27 @@
     "unitSeconds": "秒",
     "unitVideos": "部"
   },
+  "open115": {
+    "title": "115 Open（官方接口直连）",
+    "help": "用 115 官方接口登录，读你授权的文件夹，不用在 Docker 里挂载 115。播放走原盘直链。",
+    "account": "115 账号",
+    "bound": "已绑定",
+    "notBound": "未绑定",
+    "bindAccount": "绑定 115 账号",
+    "qrcodeHelp": "用 115 App 扫码确认绑定，绑定成功后这里会自动更新。",
+    "cancelQrcode": "取消扫码",
+    "appNotConfiguredTitle": "开发者应用未配置",
+    "appNotConfigured": "请先在部署里填好 115 应用的 AppID 与 AppSecret（环境变量），再回来扫码绑定。",
+    "currentFolder": "已绑定文件夹",
+    "selectFolder": "选择文件夹",
+    "rootFolder": "115 云盘",
+    "noSubfolders": "这个文件夹下面没有子文件夹。",
+    "saveFolder": "绑定这个文件夹",
+    "test": "测试连接",
+    "testOk": "115 连接正常",
+    "disconnect": "断开绑定",
+    "disconnected": "115 已断开绑定"
+  },
   "peachProxy": {
     "chooseMode": "需要选择连接方式",
     "environment": "跟随环境",
