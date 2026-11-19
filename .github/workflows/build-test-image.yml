@@ -9,7 +9,7 @@ name: Build test image (clouddrive-115)
 # NAS 才能免登录拉取；改成 Public 前 NAS 拉取会报 401。
 on:
   push:
-    branches: [clouddrive-115]
+    branches: [clouddrive-115-upstream]
     paths: [Dockerfile, .dockerignore, compose.yaml, 'src/**', 'migrations/**', 'web/**', 'resources/**', pyproject.toml, uv.lock, setup.py, MANIFEST.in, .github/workflows/build-test-image.yml]
   workflow_dispatch:
 
