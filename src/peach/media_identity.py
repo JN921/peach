@@ -139,11 +139,11 @@ def validate_catalog(libraries, roots):
         actual = (PureWindowsPath(mount) if len(mount) > 1 and mount[1] == ":" else PurePosixPath(mount)) if mount else path
         from .smb_media import canonical
         smb = value.get('transport') == 'smb'
-        if value.get('transport', 'filesystem') not in {'filesystem', 'smb'}:
+        if value.get('transport', 'filesystem') not in {'filesystem', 'smb', 'open115'}:
             raise UserValueError('errors.mediaIdentity.transportInvalid')
         if smb:
             canonical(mount)
-        if not smb and (not actual.is_absolute() or ".." in actual.parts):
+        if not smb and value.get('transport') != 'open115' and (not actual.is_absolute() or ".." in actual.parts):
             raise UserValueError("errors.mediaIdentity.mountNotAbsolute")
         if any(overlaps(actual, other) for other in mounted):
             raise UserValueError("errors.mediaIdentity.mountOverlap")
@@ -221,6 +221,9 @@ def configure_sources(config, sources, *, windows):
         from .smb_media import is_address
         if is_address(path):
             roots[root_id]['transport'] = 'smb'
+        elif row.get('transport') == 'open115':
+            # 115 Open 行没有本机挂载：transport 留在根目录上，rows() 与扫描据此分流。
+            roots[root_id]['transport'] = 'open115'
     # 不在表单来源列表里的扩展连接器仍由其专用设置维护。
     from .media_sources import SOURCE_OPTIONS
     roots.update({key: value for key, value in previous.items() if value["location"] not in dict(SOURCE_OPTIONS)})

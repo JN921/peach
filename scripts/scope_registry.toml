@@ -75,7 +75,7 @@ tooling = [
     "test_reporting_*.py", "test_library_sharing.py", "test_research_archive.py",
     "test_library_diagnostics.py", "test_script_policy.py", "test_scan.py", "test_record_rehome.py",
     "test_wants.py", "test_push_discovery.py", "test_media_probe.py", "test_subtitles.py",
-    "test_onboarding.py", "test_configuration_sources.py", "test_clouddrive_proxy.py",
+    "test_onboarding.py", "test_configuration_sources.py", "test_clouddrive_proxy.py", "test_open115.py",
     "test_folder_picker.py", "test_ledger_backups.py", "test_clear_camera_filename_codes.py",
     "test_check_public_text.py",
     "test_issue_intake.py", "test_star_history.py", "test_test_history.py",

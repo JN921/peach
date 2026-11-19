@@ -19,13 +19,14 @@ import { DownloadGroup } from './download-settings';
 import { GeneralSettings } from './general-settings';
 import { MaintenanceSettings } from './maintenance-settings';
 import { MediaSettings } from './media-settings';
+import { Open115Settings } from './open115-settings';
 import { MediaProcessingSettings, PlaybackTranscodeSettings } from './media-processing-settings';
 import { TaskSpeedSettings } from './service-preferences';
 import { CodePatternSettings } from './code-pattern-settings';
 import { NetworkSettings } from './network-settings';
 import { SourceSettings } from './source-settings';
 import { groupRoot } from './configuration-panel';
-import { downloadsShape, maintenanceShape, networkShape } from './configuration-shape';
+import { downloadsShape, maintenanceShape, networkShape, open115Shape } from './configuration-shape';
 import { rememberShape } from '../../configuration-skeleton';
 import { busyProps } from './use-action';
 import { t } from '../../i18n';
@@ -79,6 +80,8 @@ function ConfigurationGroups(
   useEffect(() => {
     const downloads = downloadsShape(data);
     if (downloads) rememberShape('downloads', downloads);
+    const open115 = open115Shape(data);
+    if (open115) rememberShape('open115', open115);
     rememberShape('network', networkShape(data));
     rememberShape('maintenance', maintenanceShape(data));
   }, [data]);
@@ -115,6 +118,7 @@ function ConfigurationGroups(
     { id: 'library', title: CONFIGURATION_SECTIONS.library, body: (panel) => <div {...groupRoot(panel)}>
       {issues(['media_sources', 'library_count', 'mount_dependencies'])}
       {!data.section_errors?.media_sources && !data.section_errors?.library_count ? <MediaSettings {...group} /> : null}
+      <Open115Settings {...group} />
       <CodePatternSettings receipt={receipt} />
       <MediaProcessingSettings receipt={receipt} />
       <TaskSpeedSettings receipt={receipt} />
